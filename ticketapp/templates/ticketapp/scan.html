@@ -1,0 +1,78 @@
+{% extends 'ticketapp/base.html' %}
+{% block title %}scan qr code{% endblock %}
+
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">QR Code Scanner</h2>
+
+    <!-- QR Code Scanner Area -->
+    <div id="reader" style="width: 300px; height: 300px; margin: 30px auto;"></div>
+
+    <!-- Feedback Area -->
+    <div id="result" class="alert d-none mt-4 text-center" role="alert"></div>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'check_in' %}" class="btn btn-primary">Back to Check-In</a>
+    </div>
+</div>
+
+<script>
+    // Get the scan action from the URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const scanAction = urlParams.get('action');  // 'in' or 'out'
+
+    if (!scanAction) {
+        alert("Invalid action!");
+        window.location.href = "{% url 'check_in' %}";  // Redirect back to check-in page
+    }
+
+    const html5QrCode = new Html5Qrcode("reader");
+
+    function startScanning() {
+        html5QrCode.start(
+            { facingMode: "environment" }, // Rear camera
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            qrCodeSuccessCallback,
+            qrCodeErrorCallback
+        ).catch(err => {
+            displayMessage("error", `Unable to start scanning: ${err}`);
+        });
+    }
+
+    function qrCodeSuccessCallback(qrCodeMessage) {
+        html5QrCode.stop().then(() => {
+            fetch(`/scan/${scanAction}/?qr_code=${encodeURIComponent(qrCodeMessage)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        displayMessage("success", data.message);
+                    } else {
+                        displayMessage("error", data.message);
+                    }
+                })
+                .catch(err => {
+                    displayMessage("error", "Error communicating with the server.");
+                });
+        }).catch(err => {
+            displayMessage("error", `Unable to stop scanning: ${err}`);
+        });
+    }
+
+    function qrCodeErrorCallback(errorMessage) {
+        console.warn(`QR Code scanning error: ${errorMessage}`);
+    }
+
+    function displayMessage(type, message) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = `alert alert-${type}`;
+        resultDiv.textContent = message;
+        resultDiv.classList.remove('d-none');
+    }
+
+    startScanning();  // Start scanning when the page loads
+</script>
+{% endblock %}

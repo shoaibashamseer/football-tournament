@@ -1,0 +1,33 @@
+{% extends 'ticketapp/base.html' %}
+{% block title %}Check In Page{% endblock %}
+{% block content %}
+<p>Total Checked In Today: {{ seat_count }}</p>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Seat Number</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attendee in attendees %}
+        <tr>
+            <td>{{ attendee.seat_number }}</td>
+            <td>
+                {% if attendee.is_inside %}
+                    Checked In
+                {% elif attendee.check_out_time %}
+                    Checked Out
+                {% else %}
+                    Not Checked In
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="text-center mt-4">
+    <a href="{% url 'scan_page' %}?action=in" class="btn btn-success">Scan In</a>
+    <a href="{% url 'scan_page' %}?action=out" class="btn btn-danger">Scan Out</a>
+</div>
+{% endblock %}
