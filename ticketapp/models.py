@@ -32,7 +32,7 @@ class Attendance(models.Model):
 
 class FirstCheckIn(models.Model):
     date = models.DateField(unique=True)  
-    start_time = models.DateTimeField() 
+    start_time = models.DateTimeField(null=True, blank=True) 
 
     def __str__(self):
         return f"Start Time for {self.date}: {self.start_time}"

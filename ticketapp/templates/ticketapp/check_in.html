@@ -1,33 +1,50 @@
 {% extends 'ticketapp/base.html' %}
 {% block title %}Check In Page{% endblock %}
 {% block content %}
-<p>Total Checked In Today: {{ seat_count }}</p>
-<table class="table table-bordered">
+
+ <!-- Today's Summary -->
+ <h3>Today's Summary</h3>
+ <table class="table table-bordered text-center">
     <thead>
         <tr>
-            <th>Seat Number</th>
-            <th>Status</th>
+            <th>Checked In</th>
+            <th>Checked Out</th>
+            <th>Not Checked In</th>
         </tr>
     </thead>
     <tbody>
-        {% for attendee in attendees %}
         <tr>
-            <td>{{ attendee.seat_number }}</td>
-            <td>
-                {% if attendee.is_inside %}
-                    Checked In
-                {% elif attendee.check_out_time %}
-                    Checked Out
-                {% else %}
-                    Not Checked In
-                {% endif %}
-            </td>
+            <td>{{ today_checked_in }}</td>
+            <td>{{ today_checked_out }}</td>
+            <td>{{ today_not_checked_in }}</td>
         </tr>
-        {% endfor %}
     </tbody>
 </table>
-<div class="text-center mt-4">
+
+
+ <h3>Previous Days Summary</h3>
+ <table class="table table-bordered text-center">
+     <thead>
+         <tr>
+             <th>Date</th>
+             <th>Total Checked In</th>
+         </tr>
+     </thead>
+     <tbody>
+         {% for day in previous_day_counts %}
+         <tr>
+             <td>{{ day.date }}</td>
+             <td>{{ day.total_present }}</td>
+         </tr>
+         {% endfor %}
+     </tbody>
+ </table>
+ <div class="text-center mt-4">
+    <!-- Scan In Button -->
     <a href="{% url 'scan_page' %}?action=in" class="btn btn-success">Scan In</a>
+
+    <!-- Scan Out Button -->
     <a href="{% url 'scan_page' %}?action=out" class="btn btn-danger">Scan Out</a>
+    <a href="{% url 'details' %}" class="btn btn-primary">Details</a>
 </div>
-{% endblock %}
+ {% endblock %}

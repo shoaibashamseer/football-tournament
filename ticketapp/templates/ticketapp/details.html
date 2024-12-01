@@ -1,0 +1,54 @@
+{% extends 'ticketapp/base.html' %}
+{% block title %}Check In Page{% endblock %}
+{% block content %}
+ <!-- Today's Attendance -->
+ <h3>Today's Attendance (Page {{ today_page.number }} of {{ today_page.paginator.num_pages }})</h3>
+ <table class="table table-bordered text-center">
+     <thead>
+         <tr>
+             <th>Seat Number</th>
+             <th>Status</th>
+         </tr>
+     </thead>
+     <tbody>
+         {% for attendee in today_page %}
+         <tr class="{% if attendee.is_inside %}table-success{% elif attendee.check_out_time %}table-danger{% else %}table-secondary{% endif %}">
+             <td>{{ attendee.seat_number }}</td>
+             <td>
+                 {% if attendee.is_inside %}
+                     <span class="text-success fw-bold">✔ Checked In</span>
+                 {% elif attendee.check_out_time %}
+                     <span class="text-danger fw-bold">✘ Checked Out</span>
+                 {% else %}
+                     <span class="text-secondary fw-bold">✘ Not Checked In</span>
+                 {% endif %}
+             </td>
+         </tr>
+         {% endfor %}
+     </tbody>
+ </table>
+
+ <!-- Pagination Controls -->
+ <nav>
+    <ul class="pagination justify-content-center">
+        {% if today_page.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ today_page.previous_page_number }}">Previous</a>
+        </li>
+        {% endif %}
+        {% for num in today_page.paginator.page_range %}
+        <li class="page-item {% if today_page.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if today_page.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ today_page.next_page_number }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+<div class="text-center mt-4">
+    <a href="{% url 'check_in' %}" class="btn btn-success"> Go Back</a>
+</div>
+{% endblock %}
