@@ -19,7 +19,7 @@ def login_page(request):
             event = Event.objects.get(name=event_name, password=password)
             
             request.session['event_id'] = event.id
-            return render(request, 'ticketapp/check_in.html')
+            return redirect('check_in') 
  
         except Event.DoesNotExist:
         
