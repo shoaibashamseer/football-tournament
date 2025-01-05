@@ -9,14 +9,12 @@
         <tr>
             <th>Checked In</th>
             <th>Checked Out</th>
-            <th>Not Checked In</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td>{{ today_checked_in }}</td>
             <td>{{ today_checked_out }}</td>
-            <td>{{ today_not_checked_in }}</td>
         </tr>
     </tbody>
 </table>
@@ -28,6 +26,7 @@
          <tr>
              <th>Date</th>
              <th>Total Checked In</th>
+             <!--<th>Details</th>-->
          </tr>
      </thead>
      <tbody>
@@ -35,6 +34,10 @@
          <tr>
              <td>{{ day.date }}</td>
              <td>{{ day.total_present }}</td>
+             <!--<td>
+                <a href="{% url 'details' %}?date={{ day.date|date:'Y-m-d' }}" class="btn btn-primary btn-sm">Details</a>
+
+            </td>-->
          </tr>
          {% endfor %}
      </tbody>

@@ -6,6 +6,7 @@ class Event(models.Model):
     password = models.CharField(max_length=50)
     start_date = models.DateField()
     end_date = models.DateField()
+    users = models.ManyToManyField(User, related_name='events')
 
     def __str__(self):
         return self.name
@@ -22,17 +23,21 @@ class SeatAllocation(models.Model):
 class Attendance(models.Model):
     qr_code_data = models.CharField(max_length=20)
     seat_number = models.CharField(max_length=5)
-    date = models.DateField()  
-    is_inside = models.BooleanField(default=False) 
+    date = models.DateField()
+    is_inside = models.BooleanField(default=False)
     check_in_time = models.DateTimeField(null=True, blank=True)
     check_out_time = models.DateTimeField(null=True, blank=True)
+    scanned_by = models.ForeignKey(User, on_delete=models.CASCADE,default=1)
 
     def __str__(self):
         return f"Seat {self.seat_number} ({self.qr_code_data})"
 
+    class Meta:
+        ordering = ['check_in_time']
+
 class FirstCheckIn(models.Model):
-    date = models.DateField(unique=True)  
-    start_time = models.DateTimeField(null=True, blank=True) 
+    date = models.DateField(unique=True)
+    start_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Start Time for {self.date}: {self.start_time}"

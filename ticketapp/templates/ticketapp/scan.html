@@ -1,37 +1,32 @@
 {% extends 'ticketapp/base.html' %}
 {% block title %}scan qr code{% endblock %}
-
-
 {% block content %}
 <div class="container mt-5">
     <h2 class="text-center">QR Code Scanner</h2>
 
-    <!-- QR Code Scanner Area -->
+    <!-- QR Code Scanner/Feedback Area -->
     <div id="reader" style="width: 300px; height: 300px; margin: 30px auto;"></div>
-
-    <!-- Feedback Area -->
-    <div id="result" class="alert d-none mt-4 text-center" role="alert"></div>
+    <div id="result" class="alert d-none mt-4 text-center" role="alert" style="width: 300px; height: 100px; margin: 30px auto;"></div>
 
     <div class="text-center mt-4">
-        <a href="{% url 'check_in' %}" class="btn btn-success"> Go Back</a>
+        <a href="{% url 'check_in' %}" class="btn btn-success">Go Back</a>
     </div>
 </div>
 
 <script>
-    
     const urlParams = new URLSearchParams(window.location.search);
-    const scanAction = urlParams.get('action');  
+    const scanAction = urlParams.get('action');
 
     if (!scanAction) {
         alert("Invalid action!");
-        window.location.href = "{% url 'check_in' %}";  
+        window.location.href = "{% url 'check_in' %}";
     }
 
     const html5QrCode = new Html5Qrcode("reader");
 
     function startScanning() {
         html5QrCode.start(
-            { facingMode: "environment" }, 
+            { facingMode: "environment" },
             {
                 fps: 10,
                 qrbox: { width: 250, height: 250 }
@@ -52,14 +47,12 @@
                         displayMessage("success", data.message);
                         setTimeout(() => {
                             window.location.href = "{% url 'check_in' %}";
-                        }, 2000);
-                        
-
+                        }, 200);
                     } else {
                         displayMessage("error", data.message);
                         setTimeout(() => {
                             window.location.href = "{% url 'check_in' %}";
-                        }, 2000);
+                        }, 500);
                     }
                 })
                 .catch(err => {
@@ -75,12 +68,18 @@
     }
 
     function displayMessage(type, message) {
+        const readerDiv = document.getElementById('reader');
         const resultDiv = document.getElementById('result');
-        resultDiv.className = `alert alert-${type}`;
+
+        let alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+
+        // Hide the camera and show the result
+        readerDiv.style.display = 'none';
+        resultDiv.className = `alert ${alertClass}`;
         resultDiv.textContent = message;
         resultDiv.classList.remove('d-none');
     }
 
-    startScanning();  
+    startScanning();
 </script>
 {% endblock %}

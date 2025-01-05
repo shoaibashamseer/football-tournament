@@ -1,45 +1,42 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .models import Event, SeatAllocation, Attendance
-from datetime import datetime , date
-from django.utils.timezone import now, timedelta
-from .models import Attendance, FirstCheckIn, SeatAllocation
+from datetime import date
+from .models import Event, SeatAllocation, Attendance,FirstCheckIn
+from django.utils.timezone import now,timedelta,datetime
 from django.core.paginator import Paginator
 from django.db import models
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+
 
 def login_page(request):
     if request.method == "POST":
-        event_name = request.POST.get('event_name')  
-        password = request.POST.get('password')  
+        username = request.POST.get("username")
+        password = request.POST.get("password")
 
+
+        print(f"Debug: Username - {username}, Password - {password}")
+
+        user = authenticate(request,username=username, password=password)
+        print(user)
         try:
-            
-            event = Event.objects.get(name=event_name, password=password)
-            
-            request.session['event_id'] = event.id
-            return redirect('check_in') 
- 
+            if user is not None:
+                login(request, user)
+                print(f"Debug: Session Key - {request.session.session_key}")
+                return redirect('check_in')
+
+            else:
+                messages.error(request, "Invalid credentials.")
+
         except Event.DoesNotExist:
-        
+
             return render(request, 'ticketapp/login.html', {'error': 'Invalid Event Name or Password'})
 
     return render(request, 'ticketapp/login.html')
 
-def event_login_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if 'event_id' not in request.session:
-            return redirect('login')  
-        try:
-            request.event = Event.objects.get(id=request.session['event_id'])
-        except Event.DoesNotExist:
-            return redirect('login')  
-        return view_func(request, *args, **kwargs)
-    return wrapper
 
-
-@event_login_required
+@login_required
 def base_page(request):
     return render(request, 'ticketapp/base.html', {'event': request.event})
 
@@ -47,14 +44,14 @@ def base_page(request):
 @login_required
 def check_in_page(request):
     today = date.today()
-    print(today)
-    
+
+
     today_attendees = Attendance.objects.filter(date=today)
-   
+
     today_checked_in = today_attendees.filter(is_inside=True).count()
     print(today_checked_in)
     today_checked_out = today_attendees.filter(is_inside=False, check_out_time__isnull=False).count()
-    today_not_checked_in = today_attendees.filter(is_inside=False, check_out_time__isnull=True).count()
+
 
     previous_day_counts = (
         Attendance.objects.filter(date__lt=today, is_inside=True)
@@ -67,15 +64,14 @@ def check_in_page(request):
 
         'today_checked_in': today_checked_in,
         'today_checked_out': today_checked_out,
-        'today_not_checked_in': today_not_checked_in,
-        'previous_day_counts': previous_day_counts,  
+        'previous_day_counts': previous_day_counts,
     }
 
     return render(request, 'ticketapp/check_in.html', context)
 
 def check_in_data(request):
     today = date.today()
-    page_number = int(request.GET.get('page', 1))  
+    page_number = int(request.GET.get('page', 1))
     attendees = Attendance.objects.filter(date=today)
 
     paginator = Paginator(attendees, 50)  # 50 records per page
@@ -101,18 +97,18 @@ def check_in_data(request):
 @login_required
 def scan_qr(request, action):
     print(f"Action: {action}, QR Code: {request.GET.get('qr_code')}")
-    
+
     qr_code = request.GET.get('qr_code')
     today = date.today()
 
     if not qr_code:
         return JsonResponse({'status': 'error', 'message': 'No QR code provided'})
-    
-    
+
+
     if action not in ['in', 'out']:
         return JsonResponse({'status': 'error', 'message': 'Invalid action'})
 
-    print(f"Received QR Code: {qr_code}") 
+    print(f"Received QR Code: {qr_code}")
     # Fetch seat allocation
     try:
         seat = SeatAllocation.objects.get(qr_code_data=qr_code)
@@ -135,12 +131,13 @@ def scan_qr(request, action):
         first_check_in.start_time = now()
         first_check_in.save()
 
-    # 
+    #
     attendance, created = Attendance.objects.get_or_create(
         qr_code_data=qr_code,
         seat_number=seat.seat_number,
         date=today,
-        defaults={'is_inside': False}
+        defaults={'scanned_by': request.user}
+        #defaults={'is_inside': False}
     )
 
     if action == 'in':
@@ -159,23 +156,37 @@ def scan_qr(request, action):
         attendance.save()
         return JsonResponse({'status': 'success', 'message': f'Seat {attendance.seat_number} marked as left', 'redirect_url': '/check-in/'})
 
+
 @login_required
 def detailed_view(request):
-    today = date.today()
 
-    # Fetch today's attendance
-    today_attendees = Attendance.objects.filter(date=today)
-    paginator = Paginator(today_attendees, 50)  # Show 50 records per page
+    selected_date = request.GET.get('date')
+    if selected_date:
+        try:
 
-    # Get the current page number, default to 1 if invalid
+            try:
+                date_to_show = datetime.strptime(selected_date, "%Y-%m-%d").date()
+            except ValueError:
+                date_to_show = datetime.strptime(selected_date, "%b. %d, %Y").date()
+        except ValueError:
+            return render(request, 'ticketapp/details.html', {'error': 'Invalid date format'})
+    else:
+
+        date_to_show = now().date()
+
+
+    attendees = Attendance.objects.filter(date=date_to_show).order_by('check_in_time')
+
+    # Paginate the attendees
+    paginator = Paginator(attendees, 50)  # Show 50 records per page
     page_number = request.GET.get('page', 1)
-    try:
-        today_page = paginator.get_page(page_number)
-    except:
-        today_page = paginator.get_page(1)
+    page_obj = paginator.get_page(page_number)
 
-
-    return render(request, 'ticketapp/details.html',{'today_page': today_page} )
+    # Pass the selected date to the template
+    return render(request, 'ticketapp/details.html', {
+        'selected_date': date_to_show,
+        'today_page': page_obj,
+    })
 
 
 def scan_page(request):
